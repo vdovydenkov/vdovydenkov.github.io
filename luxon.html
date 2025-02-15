@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html>
+ <head>
+  <title>Luxon + importmaps</title><meta charset="utf-8">
+  
+   <script type="importmap">{ "imports": { "luxon": "https://kodaktor.ru/_luxon.js" } }</script> 
+
+ </head>
+ <body>
+    <h1 id="hh">Luxon</h1>
+  
+    <script type="module" >
+      
+      import { DateTime } from 'luxon';
+
+      setInterval(() => {
+        hh.textContent = DateTime
+        .local()
+        .setLocale('ru')
+        .toFormat('dd.LL.y HH:mm:ss');
+      }, 1000);
+     
+    </script>  
+
+ </body>
+</html>
