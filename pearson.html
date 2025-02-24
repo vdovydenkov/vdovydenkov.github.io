@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Результат</title>
+    <script>
+        function calculatePearsonCorrelation() {
+            // Получаем параметры из URL
+            const query = window.location.search.substring(1);
+            const params = query.split('&');
+            let aValues = [];
+            let bValues = [];
+
+            // Извлекаем значения параметров A и B
+            params.forEach(param => {
+                const [key, value] = param.split('=');
+                if (key === 'A') {
+                    aValues = value.split(',').map(Number);
+                } else if (key === 'B') {
+                    bValues = value.split(',').map(Number);
+                }
+            });
+
+            // Вычисляем коэффициент корреляции Пирсона
+            const n = aValues.length;
+            let sumA = 0, sumB = 0, sumAB = 0, sumA2 = 0, sumB2 = 0;
+
+            for (let i = 0; i < n; i++) {
+                sumA += aValues[i];
+                sumB += bValues[i];
+                sumAB += aValues[i] * bValues[i];
+                sumA2 += aValues[i] * aValues[i];
+                sumB2 += bValues[i] * bValues[i];
+            }
+
+            const numerator = (n * sumAB) - (sumA * sumB);
+            const denominator = Math.sqrt((n * sumA2 - sumA * sumA) * (n * sumB2 - sumB * sumB));
+            let result = Math.abs(numerator / denominator);
+
+            // Обрезаем до трех знаков после запятой
+            result = result.toString().substring(0, 5);
+
+            // Устанавливаем результат в заголовок окна
+            document.title = result;
+        }
+    </script>
+</head>
+<body onload="calculatePearsonCorrelation()">
+    <h4>465778</h4>
+</body>
+</html>
+
+Замените "ВашЛогин" на ваш фактический логин в системе. Этот код извлекает параметры из URL, вычисляет коэффициент корреляции Пирсона и устанавливает результат в заголовок окна.
