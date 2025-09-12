@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аудиоплеер</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .path-navigation {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+        }
+
+        .breadcrumb {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .breadcrumb a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .directory-list {
+            margin-bottom: 20px;
+        }
+
+        .directory-item {
+            display: inline-block;
+            margin: 5px 10px 5px 0;
+            padding: 8px 15px;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .directory-item:hover {
+            background: #0056b3;
+        }
+
+        .file-list {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .file-item.playing {
+            background-color: #e3f2fd;
+        }
+
+        .file-number {
+            min-width: 40px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .file-name {
+            flex-grow: 1;
+            margin: 0 15px;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .file-name:hover {
+            color: #007bff;
+        }
+
+        .play-button {
+            padding: 8px 15px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .play-button:hover {
+            background: #218838;
+        }
+
+        .play-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .current-playing {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .current-playing h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .audio-controls {
+            margin-top: 10px;
+        }
+
+        audio {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Аудиоплеер</h1>
+
+    <div class="controls">
+        <div class="path-navigation">
+            <div class="breadcrumb" id="breadcrumb">
+                <a href="#" onclick="loadDirectory('')">Главная</a>
+            </div>
+        </div>
+
+        <div class="directory-list" id="directories"></div>
+    </div>
+
+    <div class="current-playing" id="currentPlaying" style="display: none;">
+        <h3 id="currentTrackName">Не выбран файл</h3>
+        <div class="audio-controls">
+            <audio id="audioPlayer" controls>
+                Ваш браузер не поддерживает воспроизведение аудио.
+            </audio>
+        </div>
+    </div>
+
+    <div class="file-list" id="fileList">
+        <div class="loading">Загрузка файлов...</div>
+    </div>
+
+    <script>
+        class AudioPlayer {
+            constructor() {
+                this.currentPath = '';
+                this.audioFiles = [];
+                this.directories = [];
+                this.currentIndex = -1;
+                this.audioElement = document.getElementById('audioPlayer');
+                this.isPlaying = false;
+
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadDirectory('');
+            }
+
+            setupEventListeners() {
+                this.audioElement.addEventListener('ended', () => {
+                    this.playNext();
+                });
+
+                this.audioElement.addEventListener('play', () => {
+                    this.isPlaying = true;
+                });
+
+                this.audioElement.addEventListener('pause', () => {
+                    this.isPlaying = false;
+                });
+            }
+
+            async loadDirectory(path) {
+                try {
+                    this.currentPath = path;
+                    this.updateBreadcrumb();
+                    this.showLoading();
+
+                    // Получаем список файлов и папок
+                    const response = await fetch(`/api/files?path=${encodeURIComponent(path)}`);
+
+                    if (!response.ok) {
+                        // Если API недоступен, пробуем альтернативный способ
+                        await this.loadDirectoryFallback(path);
+                        return;
+                    }
+
+                    const data = await response.json();
+                    this.directories = data.directories || [];
+                    this.audioFiles = data.audioFiles || [];
+
+                    this.renderDirectories();
+                    this.renderAudioFiles();
+
+                } catch (error) {
+                    console.error('Ошибка загрузки директории:', error);
+                    await this.loadDirectoryFallback(path);
+                }
+            }
+
+            async loadDirectoryFallback(path) {
+                // Альтернативный способ - пытаемся получить файлы напрямую
+                try {
+                    this.audioFiles = await this.scanForAudioFiles(path);
+                    this.directories = [];
+                    this.renderDirectories();
+                    this.renderAudioFiles();
+                } catch (error) {
+                    this.showError('Не удалось загрузить файлы. Убедитесь, что сервер настроен правильно.');
+                }
+            }
+
+            async scanForAudioFiles(path) {
+                // Пытаемся найти аудиофайлы в текущей директории
+                const audioExtensions = ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'];
+                const files = [];
+
+                // Это упрощенная версия - в реальности нужен серверный API
+                // Для демонстрации создаем несколько примеров файлов
+                const sampleFiles = [
+                    'example1.mp3',
+                    'example2.wav', 
+                    'example3.ogg'
+                ];
+
+                for (const file of sampleFiles) {
+                    try {
+                        const response = await fetch(path + file, { method: 'HEAD' });
+                        if (response.ok) {
+                            files.push(file);
+                        }
+                    } catch (e) {
+                        // Файл не существует
+                    }
+                }
+
+                return files.sort();
+            }
+
+            updateBreadcrumb() {
+                const breadcrumb = document.getElementById('breadcrumb');
+                const parts = this.currentPath.split('/').filter(p => p);
+
+                let html = '<a href="#" onclick="player.loadDirectory('')">Главная</a>';
+                let currentPath = '';
+
+                for (const part of parts) {
+                    currentPath += part + '/';
+                    html += ` / <a href="#" onclick="player.loadDirectory('${currentPath}')">${part}</a>`;
+                }
+
+                breadcrumb.innerHTML = html;
+            }
+
+            renderDirectories() {
+                const dirContainer = document.getElementById('directories');
+
+                if (this.directories.length === 0) {
+                    dirContainer.innerHTML = '';
+                    return;
+                }
+
+                let html = '<strong>Папки:</strong><br>';
+                for (const dir of this.directories) {
+                    html += `<a href="#" class="directory-item" onclick="player.loadDirectory('${this.currentPath}${dir}/')">${dir}</a>`;
+                }
+
+                dirContainer.innerHTML = html;
+            }
+
+            renderAudioFiles() {
+                const fileList = document.getElementById('fileList');
+
+                if (this.audioFiles.length === 0) {
+                    fileList.innerHTML = '<div class="loading">В этой папке нет аудиофайлов</div>';
+                    return;
+                }
+
+                let html = '';
+                this.audioFiles.forEach((file, index) => {
+                    const isPlaying = this.currentIndex === index && this.isPlaying;
+                    html += `
+                        <div class="file-item ${isPlaying ? 'playing' : ''}" id="file-${index}">
+                            <div class="file-number">${index + 1}.</div>
+                            <div class="file-name" onclick="player.playFile(${index})">${file}</div>
+                            <button class="play-button" onclick="player.playFile(${index})">
+                                ${isPlaying ? 'Играет' : 'Играть'}
+                            </button>
+                        </div>
+                    `;
+                });
+
+                fileList.innerHTML = html;
+            }
+
+            playFile(index) {
+                if (index < 0 || index >= this.audioFiles.length) return;
+
+                this.currentIndex = index;
+                const filename = this.audioFiles[index];
+                const filepath = this.currentPath + filename;
+
+                this.audioElement.src = filepath;
+                this.audioElement.play();
+
+                document.getElementById('currentTrackName').textContent = filename;
+                document.getElementById('currentPlaying').style.display = 'block';
+
+                this.updatePlayingState();
+            }
+
+            playNext() {
+                if (this.currentIndex < this.audioFiles.length - 1) {
+                    this.playFile(this.currentIndex + 1);
+                }
+            }
+
+            updatePlayingState() {
+                // Убираем класс playing у всех элементов
+                document.querySelectorAll('.file-item').forEach(item => {
+                    item.classList.remove('playing');
+                });
+
+                // Добавляем класс playing к текущему элементу
+                if (this.currentIndex >= 0) {
+                    const currentItem = document.getElementById(`file-${this.currentIndex}`);
+                    if (currentItem) {
+                        currentItem.classList.add('playing');
+                    }
+                }
+
+                this.renderAudioFiles();
+            }
+
+            showLoading() {
+                document.getElementById('fileList').innerHTML = '<div class="loading">Загрузка файлов...</div>';
+            }
+
+            showError(message) {
+                document.getElementById('fileList').innerHTML = `<div class="error">${message}</div>`;
+            }
+        }
+
+        // Инициализация плеера
+        const player = new AudioPlayer();
+    </script>
+</body>
+</html>
