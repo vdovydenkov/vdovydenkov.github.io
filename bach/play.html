@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Там, где кончаются слова..</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f8f8;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        h3 {
+            text-align: center;
+            color: #34495e;
+            margin-bottom: 30px;
+            font-style: italic;
+            font-size: 1.4em;
+        }
+
+        .track-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .track-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #2c3e50;
+            flex-grow: 1;
+        }
+
+        .play-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 15px;
+            transition: background-color 0.3s;
+        }
+
+        .play-button:hover {
+            background: #2980b9;
+        }
+
+        .play-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress-container {
+            margin: 15px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #ecf0f1;
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .control-buttons {
+            margin: 15px 0;
+        }
+
+        .control-button {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 5px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .control-button:hover {
+            background: #34495e;
+        }
+
+        .control-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .now-playing {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        .current-track {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .playing {
+            background-color: #e8f4fd !important;
+            border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <h1>Там, где кончаются слова..</h1>
+    <h3>Иоганн Себастьян Бах</h3>
+
+    <div class="controls">
+        <div class="now-playing">
+            <span class="current-track" id="currentTrack">Выберите трек для воспроизведения</span>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="time-display">
+                <span id="currentTime">0:00</span>
+                <span id="totalTime">0:00</span>
+            </div>
+        </div>
+
+        <div class="control-buttons">
+            <button class="control-button" id="pauseBtn" disabled>Пауза</button>
+            <button class="control-button" id="prevBtn" disabled>Предыдущий</button>
+            <button class="control-button" id="nextBtn" disabled>Следующий</button>
+        </div>
+    </div>
+
+    <div class="track-container" data-track="0">
+        <div class="track-title">Первые шаги в музыке</div>
+        <button class="play-button" onclick="playTrack(0)">Воспроизвести</button>
+    </div>
+
+    <div class="track-container" data-track="1">
+        <div class="track-title">Веймар и Кётен</div>
+        <button class="play-button" onclick="playTrack(1)">Воспроизвести</button>
+    </div>
+
+    <div class="track-container" data-track="2">
+        <div class="track-title">Лейпциг</div>
+        <button class="play-button" onclick="playTrack(2)">Воспроизвести</button>
+    </div>
+
+    <div class="track-container" data-track="3">
+        <div class="track-title">Последние годы жизни</div>
+        <button class="play-button" onclick="playTrack(3)">Воспроизвести</button>
+    </div>
+
+    <audio id="audioPlayer" preload="metadata"></audio>
+
+    <script>
+        // Track data
+        const tracks = [
+            { title: "Первые шаги в музыке", file: "01.mp3" },
+            { title: "Веймар и Кётен", file: "02.mp3" },
+            { title: "Лейпциг", file: "03.mp3" },
+            { title: "Последние годы жизни", file: "04.mp3" }
+        ];
+
+        // Player state
+        let currentTrackIndex = -1;
+        let isPlaying = false;
+        let playlistMode = false; // When true, plays all tracks to the end
+
+        // DOM elements
+        const audioPlayer = document.getElementById('audioPlayer');
+        const currentTrackSpan = document.getElementById('currentTrack');
+        const progressFill = document.getElementById('progressFill');
+        const progressBar = document.getElementById('progressBar');
+        const currentTimeSpan = document.getElementById('currentTime');
+        const totalTimeSpan = document.getElementById('totalTime');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // Cookie functions (Safari compatible)
+        function setCookie(name, value, days = 7) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = name + '=' + encodeURIComponent(JSON.stringify(value)) + ';expires=' + expires.toUTCString() + ';path=/;SameSite=Lax';
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) {
+                    try {
+                        return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
+                    } catch(e) {
+                        return null;
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Save position to cookie
+        function savePosition() {
+            if (currentTrackIndex >= 0) {
+                const position = {
+                    trackIndex: currentTrackIndex,
+                    currentTime: audioPlayer.currentTime,
+                    timestamp: Date.now()
+                };
+                setCookie('bachPlayerPosition', position);
+            }
+        }
+
+        // Load position from cookie
+        function loadPosition() {
+            const position = getCookie('bachPlayerPosition');
+            if (position && position.trackIndex >= 0 && position.trackIndex < tracks.length) {
+                // Only restore if saved less than 24 hours ago
+                if (Date.now() - position.timestamp < 24 * 60 * 60 * 1000) {
+                    currentTrackIndex = position.trackIndex;
+                    loadTrack(currentTrackIndex, position.currentTime);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Load and prepare track
+        function loadTrack(index, startTime = 0) {
+            if (index < 0 || index >= tracks.length) return;
+
+            currentTrackIndex = index;
+            audioPlayer.src = tracks[index].file;
+            currentTrackSpan.textContent = tracks[index].title;
+
+            // Update visual state
+            updateTrackVisuals();
+
+            // Set start time when metadata is loaded
+            if (startTime > 0) {
+                audioPlayer.addEventListener('loadedmetadata', function setStartTime() {
+                    audioPlayer.currentTime = Math.min(startTime, audioPlayer.duration);
+                    audioPlayer.removeEventListener('loadedmetadata', setStartTime);
+                }, { once: true });
+            }
+
+            enableControls();
+        }
+
+        // Play specific track
+        function playTrack(index) {
+            playlistMode = true; // Enable playlist mode
+            loadTrack(index);
+            audioPlayer.play();
+            isPlaying = true;
+            updatePlayPauseButton();
+        }
+
+        // Toggle play/pause
+        function togglePlayPause() {
+            if (currentTrackIndex < 0) return;
+
+            if (isPlaying) {
+                audioPlayer.pause();
+                isPlaying = false;
+            } else {
+                audioPlayer.play();
+                isPlaying = true;
+            }
+            updatePlayPauseButton();
+        }
+
+        // Previous track
+        function previousTrack() {
+            if (currentTrackIndex > 0) {
+                playTrack(currentTrackIndex - 1);
+            }
+        }
+
+        // Next track
+        function nextTrack() {
+            if (currentTrackIndex < tracks.length - 1) {
+                playTrack(currentTrackIndex + 1);
+            }
+        }
+
+        // Update play/pause button
+        function updatePlayPauseButton() {
+            pauseBtn.textContent = isPlaying ? 'Пауза' : 'Воспроизвести';
+        }
+
+        // Update track visuals
+        function updateTrackVisuals() {
+            // Reset all track containers
+            document.querySelectorAll('.track-container').forEach(container => {
+                container.classList.remove('playing');
+            });
+
+            // Highlight current track
+            if (currentTrackIndex >= 0) {
+                const currentContainer = document.querySelector(`[data-track="${currentTrackIndex}"]`);
+                if (currentContainer) {
+                    currentContainer.classList.add('playing');
+                }
+            }
+        }
+
+        // Enable controls
+        function enableControls() {
+            pauseBtn.disabled = false;
+            prevBtn.disabled = currentTrackIndex <= 0;
+            nextBtn.disabled = currentTrackIndex >= tracks.length - 1;
+        }
+
+        // Format time
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return mins + ':' + (secs < 10 ? '0' : '') + secs;
+        }
+
+        // Update progress
+        function updateProgress() {
+            if (audioPlayer.duration) {
+                const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progressFill.style.width = progress + '%';
+                currentTimeSpan.textContent = formatTime(audioPlayer.currentTime);
+                totalTimeSpan.textContent = formatTime(audioPlayer.duration);
+
+                // Save position periodically
+                if (isPlaying && audioPlayer.currentTime > 0) {
+                    savePosition();
+                }
+            }
+        }
+
+        // Seek to position
+        function seekTo(event) {
+            if (audioPlayer.duration && currentTrackIndex >= 0) {
+                const rect = progressBar.getBoundingClientRect();
+                const clickX = event.clientX - rect.left;
+                const progress = clickX / rect.width;
+                audioPlayer.currentTime = progress * audioPlayer.duration;
+            }
+        }
+
+        // Event listeners
+        audioPlayer.addEventListener('timeupdate', updateProgress);
+        audioPlayer.addEventListener('loadedmetadata', updateProgress);
+
+        audioPlayer.addEventListener('ended', () => {
+            if (playlistMode && currentTrackIndex < tracks.length - 1) {
+                // Auto-play next track
+                nextTrack();
+            } else {
+                // Stop at the end
+                isPlaying = false;
+                updatePlayPauseButton();
+                if (currentTrackIndex === tracks.length - 1) {
+                    playlistMode = false; // Reset playlist mode
+                }
+            }
+        });
+
+        audioPlayer.addEventListener('play', () => {
+            isPlaying = true;
+            updatePlayPauseButton();
+        });
+
+        audioPlayer.addEventListener('pause', () => {
+            isPlaying = false;
+            updatePlayPauseButton();
+        });
+
+        // Control button events
+        pauseBtn.addEventListener('click', togglePlayPause);
+        prevBtn.addEventListener('click', previousTrack);
+        nextBtn.addEventListener('click', nextTrack);
+        progressBar.addEventListener('click', seekTo);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    togglePlayPause();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    if (audioPlayer.currentTime > 10) {
+                        audioPlayer.currentTime -= 10;
+                    } else {
+                        audioPlayer.currentTime = 0;
+                    }
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    if (audioPlayer.currentTime < audioPlayer.duration - 10) {
+                        audioPlayer.currentTime += 10;
+                    }
+                    break;
+            }
+        });
+
+        // Initialize player on page load
+        window.addEventListener('load', () => {
+            // Try to restore previous position
+            loadPosition();
+        });
+
+        // Save position before page unload
+        window.addEventListener('beforeunload', savePosition);
+
+        // Save position when page becomes hidden (mobile Safari)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                savePosition();
+            }
+        });
+    </script>
+</body>
+</html>
